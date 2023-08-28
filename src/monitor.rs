@@ -241,36 +241,36 @@ impl Monitor {
                     Line::from(format!("Requests : {}", last_1_timescale.len())),
                     Line::from(vec![Span::styled(
                         format!(
-                            "Slowest: {:.4} secs",
+                            "Slowest: {:.4} ms",
                             last_1_timescale
                                 .iter()
                                 .map(|r| r.duration())
                                 .max()
-                                .map(|d| d.as_secs_f64())
+                                .map(|d| d.subsec_millis() as f64)
                                 .unwrap_or(std::f64::NAN)
                         ),
                         Style::default().fg(colors.yellow.unwrap_or(Color::Reset)),
                     )]),
                     Line::from(vec![Span::styled(
                         format!(
-                            "Fastest: {:.4} secs",
+                            "Fastest: {:.4} ms",
                             last_1_timescale
                                 .iter()
                                 .map(|r| r.duration())
                                 .min()
-                                .map(|d| d.as_secs_f64())
+                                .map(|d| d.subsec_millis() as f64)
                                 .unwrap_or(std::f64::NAN)
                         ),
                         Style::default().fg(colors.green.unwrap_or(Color::Reset)),
                     )]),
                     Line::from(vec![Span::styled(
                         format!(
-                            "Average: {:.4} secs",
+                            "Average: {:.4} ms",
                             last_1_timescale
                                 .iter()
                                 .map(|r| r.duration())
                                 .sum::<std::time::Duration>()
-                                .as_secs_f64()
+                                .subsec_millis() as f64
                                 / last_1_timescale.len() as f64
                         ),
                         Style::default().fg(colors.light_blue.unwrap_or(Color::Reset)),

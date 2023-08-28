@@ -59,9 +59,9 @@ impl StyleScheme {
 
     fn latency_distribution(self, text: &str, label: f64) -> StyledContent<&str> {
         if self.color_enabled {
-            if label <= 0.3 {
+            if label <= 12.0 {
                 text.green()
-            } else if label <= 0.8 {
+            } else if label <= 30.0 {
                 text.yellow()
             } else {
                 text.red()
@@ -176,24 +176,24 @@ fn print_json<W: Write, E: std::fmt::Display>(
 
     let summary = Summary {
         success_rate: res.iter().filter(|r| r.is_ok()).count() as f64 / res.len() as f64,
-        total: total_duration.as_secs_f64(),
+        total: total_duration.subsec_nanos() as f64 / 1e6,
         slowest: res
             .iter()
             .filter_map(|r| r.as_ref().ok())
-            .map(|r| r.duration().as_secs_f64())
+            .map(|r| r.duration().subsec_nanos() as f64 / 1e6)
             .collect::<average::Max>()
             .max(),
         fastest: res
             .iter()
             .filter_map(|r| r.as_ref().ok())
-            .map(|r| r.duration().as_secs_f64())
+            .map(|r| r.duration().subsec_nanos() as f64 / 1e6)
             .collect::<average::Min>()
             .min(),
         average: {
             let mean = res
                 .iter()
                 .filter_map(|r| r.as_ref().ok())
-                .map(|r| r.duration().as_secs_f64())
+                .map(|r| r.duration().subsec_nanos() as f64 / 1e6)
                 .collect::<average::Mean>();
             if mean.is_empty() {
                 f64::NAN
@@ -201,7 +201,7 @@ fn print_json<W: Write, E: std::fmt::Display>(
                 mean.mean()
             }
         },
-        requests_per_sec: res.len() as f64 / total_duration.as_secs_f64(),
+        requests_per_sec: res.len() as f64 / total_duration.subsec_nanos() as f64 / 1e6,
         total_data: res
             .iter()
             .filter_map(|r| r.as_ref().ok())
@@ -218,13 +218,13 @@ fn print_json<W: Write, E: std::fmt::Display>(
             .filter_map(|r| r.as_ref().ok())
             .map(|r| r.len_bytes as u128)
             .sum::<u128>() as f64
-            / total_duration.as_secs_f64()),
+            / total_duration.subsec_nanos() as f64 / 1e6),
     };
 
     let mut durations = res
         .iter()
         .filter_map(|r| r.as_ref().ok())
-        .map(|r| r.duration().as_secs_f64())
+        .map(|r| r.duration().subsec_nanos() as f64 / 1e6)
         .collect::<Vec<_>>();
     float_ord::sort(&mut durations);
 
@@ -238,7 +238,7 @@ fn print_json<W: Write, E: std::fmt::Display>(
     let mut ends = res
         .iter()
         .filter_map(|r| r.as_ref().ok())
-        .map(|r| (r.end - start).as_secs_f64())
+        .map(|r| (r.end - start).subsec_nanos() as f64 / 1e6)
         .collect::<Vec<_>>();
     ends.push(0.0);
     float_ord::sort(&mut ends);
@@ -299,35 +299,35 @@ fn print_json<W: Write, E: std::fmt::Display>(
         dns_dialup: Triple {
             average: connection_times
                 .iter()
-                .map(|(s, c)| (c.dialup - *s).as_secs_f64())
+                .map(|(s, c)| (c.dialup - *s).subsec_nanos() as f64 / 1e6)
                 .collect::<average::Mean>()
                 .mean(),
 
             fastest: connection_times
                 .iter()
-                .map(|(s, c)| (c.dialup - *s).as_secs_f64())
+                .map(|(s, c)| (c.dialup - *s).subsec_nanos() as f64 / 1e6)
                 .collect::<average::Min>()
                 .min(),
             slowest: connection_times
                 .iter()
-                .map(|(s, c)| (c.dialup - *s).as_secs_f64())
+                .map(|(s, c)| (c.dialup - *s).subsec_nanos() as f64 / 1e6)
                 .collect::<average::Max>()
                 .max(),
         },
         dns_lookup: Triple {
             average: connection_times
                 .iter()
-                .map(|(s, c)| (c.dns_lookup - *s).as_secs_f64())
+                .map(|(s, c)| (c.dns_lookup - *s).subsec_nanos() as f64 / 1e6)
                 .collect::<average::Mean>()
                 .mean(),
             fastest: connection_times
                 .iter()
-                .map(|(s, c)| (c.dns_lookup - *s).as_secs_f64())
+                .map(|(s, c)| (c.dns_lookup - *s).subsec_nanos() as f64 / 1e6)
                 .collect::<average::Min>()
                 .min(),
             slowest: connection_times
                 .iter()
-                .map(|(s, c)| (c.dns_lookup - *s).as_secs_f64())
+                .map(|(s, c)| (c.dns_lookup - *s).subsec_nanos() as f64 / 1e6)
                 .collect::<average::Max>()
                 .max(),
         },
@@ -375,10 +375,10 @@ fn print_summary<W: Write, E: std::fmt::Display>(
         w,
         "{}",
         style.slowest(&format!(
-            "  Slowest:\t{:.4} secs",
+            "  Slowest:\t{:.4} ms",
             res.iter()
                 .filter_map(|r| r.as_ref().ok())
-                .map(|r| r.duration().as_secs_f64())
+                .map(|r| r.duration().subsec_nanos() as f64 / 1e6)
                 .collect::<average::Max>()
                 .max()
         ))
@@ -387,10 +387,10 @@ fn print_summary<W: Write, E: std::fmt::Display>(
         w,
         "{}",
         style.fastest(&format!(
-            "  Fastest:\t{:.4} secs",
+            "  Fastest:\t{:.4} ms",
             res.iter()
                 .filter_map(|r| r.as_ref().ok())
-                .map(|r| r.duration().as_secs_f64())
+                .map(|r| r.duration().subsec_nanos() as f64 / 1e6)
                 .collect::<average::Min>()
                 .min()
         ))
@@ -399,10 +399,10 @@ fn print_summary<W: Write, E: std::fmt::Display>(
         w,
         "{}",
         style.average(&format!(
-            "  Average:\t{:.4} secs",
+            "  Average:\t{:.4} ms",
             res.iter()
                 .filter_map(|r| r.as_ref().ok())
-                .map(|r| r.duration().as_secs_f64())
+                .map(|r| r.duration().subsec_nanos() as f64 / 1e6)
                 .collect::<average::Mean>()
                 .mean()
         ))
@@ -451,7 +451,7 @@ fn print_summary<W: Write, E: std::fmt::Display>(
     let durations = res
         .iter()
         .filter_map(|r| r.as_ref().ok())
-        .map(|r| r.duration().as_secs_f64())
+        .map(|r| r.duration().subsec_nanos() as f64 / 1e6)
         .collect::<Vec<_>>();
 
     writeln!(w, "{}", style.heading("Response time histogram:"))?;
@@ -476,39 +476,39 @@ fn print_summary<W: Write, E: std::fmt::Display>(
 
     writeln!(
         w,
-        "  DNS+dialup:\t{:.4} secs, {:.4} secs, {:.4} secs",
+        "  DNS+dialup:\t{:.4} ms, {:.4} ms, {:.4} ms",
         connection_times
             .iter()
-            .map(|(s, c)| (c.dialup - *s).as_secs_f64())
+            .map(|(s, c)| (c.dialup - *s).subsec_nanos() as f64 / 1e6)
             .collect::<average::Mean>()
             .mean(),
         connection_times
             .iter()
-            .map(|(s, c)| (c.dialup - *s).as_secs_f64())
+            .map(|(s, c)| (c.dialup - *s).subsec_nanos() as f64 / 1e6)
             .collect::<average::Min>()
             .min(),
         connection_times
             .iter()
-            .map(|(s, c)| (c.dialup - *s).as_secs_f64())
+            .map(|(s, c)| (c.dialup - *s).subsec_nanos() as f64 / 1e6)
             .collect::<average::Max>()
             .max()
     )?;
     writeln!(
         w,
-        "  DNS-lookup:\t{:.4} secs, {:.4} secs, {:.4} secs",
+        "  DNS-lookup:\t{:.4} ms, {:.4} ms, {:.4} ms",
         connection_times
             .iter()
-            .map(|(s, c)| (c.dns_lookup - *s).as_secs_f64())
+            .map(|(s, c)| (c.dns_lookup - *s).subsec_nanos() as f64 / 1e6)
             .collect::<average::Mean>()
             .mean(),
         connection_times
             .iter()
-            .map(|(s, c)| (c.dns_lookup - *s).as_secs_f64())
+            .map(|(s, c)| (c.dns_lookup - *s).subsec_nanos() as f64 / 1e6)
             .collect::<average::Min>()
             .min(),
         connection_times
             .iter()
-            .map(|(s, c)| (c.dns_lookup - *s).as_secs_f64())
+            .map(|(s, c)| (c.dns_lookup - *s).subsec_nanos() as f64 / 1e6)
             .collect::<average::Max>()
             .max()
     )?;
@@ -623,7 +623,7 @@ fn print_distribution<W: Write>(
             "{}",
             style.latency_distribution(
                 &format!(
-                    "  {}% in {:.4} secs",
+                    "  {}% in {:.4} ms",
                     p,
                     buf.get(i).unwrap_or(&std::f64::NAN)
                 ),
